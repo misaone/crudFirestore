@@ -1,0 +1,588 @@
+var moment = require('moment');
+var host = pm.environment.get("APICONNECT");
+var version = pm.environment.get("APICOMNICANALIDAD");
+var xIBMClientId = pm.environment.get("x-ibm-client-id");
+
+if (moment().format(("YYYY-MM-DD")) != pm.environment.get('effectDate')) {
+    pm.environment.set('effectDate', moment().format(("YYYY-MM-DD")));
+}
+
+//Generador de DNI
+const codigo = "TRWAGMYFPDXBNJZSQVHLCKE";
+var numero = "";
+for (n = 0; n < 8; n++) {
+    numero = numero + String(_.random(0, 9));
+}
+pm.environment.set("dni", numero + codigo[parseInt(numero) % 23]);
+
+var access_token = pm.environment.get("access_token");
+var dni = pm.environment.get("dni");
+var effectDate = pm.environment.get("effectDate");
+
+//Variables entorno global
+var productFamily = pm.environment.get("productFamily");
+var productCode = pm.environment.get("productCode");
+var subProductCode = pm.environment.get("subProductCode");
+
+
+//REALIZAMOS LA CREACIÓN DE UN PRESUPUESTO-BORRADOR
+var projectCreation = {
+    url: host + '/' + version + '/quotations/project',
+    method: 'POST',
+    header: {
+        'Authorization': access_token,
+        'Content-Type': 'application/json',
+        "X-IBM-Client-Id": xIBMClientId,
+        "User-Agent": "PostmanRuntime/7.26.10",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive"
+    },
+    body: {
+        mode: 'raw',
+        raw: JSON.stringify({ "distributionIdentification": { "channel": "OFI", "officeCode": "6333", "employeeCode": "9999", "officeCommissionCode": "8908" }, "scenes": [{ "sceneId": 1, "productFamily": "AG", "productCode": "315", "subProductCode": "043", "caseId": "25487" }, { "sceneId": 2, "productFamily": "AG", "productCode": "315", "subProductCode": "052", "caseId": "25488" }], "pricing": { "effectDate": effectDate, "frequencyCode": ["02", "03"], "insureds": [{ "insuredNumber": 1, "isHolder": true, "personalData": { "clientCode": "F45222", "personType": "F", "name": "Tony", "surname1": "Rodríguez", "surname2": "Colgao", "birthDate": "1982-06-04", "jobCode": "15912", "genderCode": "H", "maritalStatus": "C", "nationality": "ES", "taxResidency": "34", "identificationDocument": { "type": "N", "number": dni, "expirationDate": "2034-11-09" }, "contact": { "favoriteTypeContact": "email", "email": "asdf@aegon.es", "telephone1": "955999999", "telephone2": "690282695", "address": { "roadType": "CL", "roadName": "asdf", "number": "12", "portal": "12", "stair": "3", "floor": "2", "door": "c", "town": "BURGOS", "province": "09", "postalCode": "09002", "otherData": "otros datos", "country": "ES" } } }, "questionary": [{ "id": "SGACC001", "questions": [{ "id": "INCAPACIDAD", "answer": false }] }], "beneficiaries": [{ "order": 1, "beneficiaryType": "01", "declarationCode": "BN", "beneficiaryText": "otro tipo de información", "participationPercentage": 100, "identificationDocument": { "type": "N", "number": "41625794A", "expirationDate": "2034-11-09" } }] }] }, "holder": { "personalData": { "clientCode": "F45222", "personType": "F", "name": "Tony", "surname1": "Rodríguez", "surname2": "Colgao", "birthDate": "1982-06-04", "jobCode": "15912", "genderCode": "H", "maritalStatus": "C", "nationality": "ES", "taxResidency": "34", "identificationDocument": { "type": "N", "number": dni, "expirationDate": "2034-11-09" }, "contact": { "favoriteTypeContact": "email", "email": "asdf@aegon.es", "telephone1": "955999999", "telephone2": "690282695", "address": { "roadType": "CL", "roadName": "asdf", "number": "12", "portal": "12", "stair": "3", "floor": "2", "door": "c", "town": "BURGOS", "province": "09", "postalCode": "09002", "otherData": "otros datos", "country": "ES" } } }, "consents": { "dataTransfer": true, "advertisingDelivery": true }, "features": { "structuralSegment": "A1", "businessSegment": "PP", "employee": false, "shareholder": false, "collectives": ["01"] } } })
+    }
+};
+
+
+pm.sendRequest(projectCreation, function (err, response) {
+    if (err) {
+        console.log(err);
+    }
+
+    var jsonData = response.json();
+    postman.setEnvironmentVariable("id_quotation", jsonData.data.quotation.quotationId);
+    postman.setEnvironmentVariable("daysPremiumCommitment", jsonData.data.quotation.daysPremiumCommitment);
+    postman.setEnvironmentVariable("startDayCommitment", jsonData.data.quotation.startDayCommitment);
+    postman.setEnvironmentVariable("effectDate", jsonData.data.quotation.effectDate);
+
+    //scenes
+
+    postman.setEnvironmentVariable("id_scene", jsonData.data.quotation.scenes[0].scene.sceneId);
+    postman.setEnvironmentVariable("productFamily", jsonData.data.quotation.scenes[0].scene.productFamily);
+    postman.setEnvironmentVariable("productCode", jsonData.data.quotation.scenes[0].scene.productCode);
+    postman.setEnvironmentVariable("subProductCode", jsonData.data.quotation.scenes[0].scene.subProductCode);
+    postman.setEnvironmentVariable("clientCode", jsonData.data.quotation.scenes[0].insureds[0].personalData.clientCode);
+    postman.setEnvironmentVariable("personType", jsonData.data.quotation.scenes[0].insureds[0].personalData.personType);
+    postman.setEnvironmentVariable("name", jsonData.data.quotation.scenes[0].insureds[0].personalData.name);
+    postman.setEnvironmentVariable("surname1", jsonData.data.quotation.scenes[0].insureds[0].personalData.surname1);
+    postman.setEnvironmentVariable("surname2", jsonData.data.quotation.scenes[0].insureds[0].personalData.surname2);
+    postman.setEnvironmentVariable("birthDate", jsonData.data.quotation.scenes[0].insureds[0].personalData.birthDate);
+    postman.setEnvironmentVariable("jobCode", jsonData.data.quotation.scenes[0].insureds[0].personalData.jobCode);
+    postman.setEnvironmentVariable("genderCode", jsonData.data.quotation.scenes[0].insureds[0].personalData.genderCode);
+    postman.setEnvironmentVariable("maritalStatus", jsonData.data.quotation.scenes[0].insureds[0].personalData.maritalStatus);
+    postman.setEnvironmentVariable("nationality", jsonData.data.quotation.scenes[0].insureds[0].personalData.nationality);
+    postman.setEnvironmentVariable("type", jsonData.data.quotation.scenes[0].insureds[0].personalData.identificationDocument.type);
+    postman.setEnvironmentVariable("dni", jsonData.data.quotation.scenes[0].insureds[0].personalData.identificationDocument.number);
+    postman.setEnvironmentVariable("expirationDate", jsonData.data.quotation.scenes[0].insureds[0].personalData.identificationDocument.expirationDate);
+    postman.setEnvironmentVariable("favoriteTypeContact", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.favoriteTypeContact);
+    postman.setEnvironmentVariable("email", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.email);
+    postman.setEnvironmentVariable("telephone1", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.telephone1);
+    postman.setEnvironmentVariable("telephone2", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.telephone2);
+    postman.setEnvironmentVariable("roadType", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.roadType);
+    postman.setEnvironmentVariable("roadName", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.roadName);
+    postman.setEnvironmentVariable("number", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.number);
+    postman.setEnvironmentVariable("portal", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.portal);
+    postman.setEnvironmentVariable("stair", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.stair);
+    postman.setEnvironmentVariable("floor", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.floor);
+    postman.setEnvironmentVariable("door", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.door);
+    postman.setEnvironmentVariable("town", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.town);
+    postman.setEnvironmentVariable("province", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.province);
+    postman.setEnvironmentVariable("postalCode", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.postalCode);
+    postman.setEnvironmentVariable("otherData", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.otherData);
+    postman.setEnvironmentVariable("country", jsonData.data.quotation.scenes[0].insureds[0].personalData.contact.address.country);
+
+    var quotationId = pm.environment.get("id_quotation");
+    var sceneId = pm.environment.get("id_scene");
+    //REALIZAMOS LA GENERACIÓN DEL DOCUMENTO PRESUPUESTO-BORRADOR
+    var documentProjectCreation = {
+        url: host + '/' + version + '/quotations/' + quotationId + '/project/' + sceneId + '/documentation',
+        method: 'POST',
+        header: {
+            'Authorization': access_token,
+            'Content-Type': 'application/json',
+            "X-IBM-Client-Id": xIBMClientId,
+            "User-Agent": "PostmanRuntime/7.26.10",
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive"
+        },
+        body: {
+            mode: 'raw',
+            raw: JSON.stringify({
+                "daysPremiumCommitment": 10
+            })
+        }
+    };
+
+    pm.sendRequest(documentProjectCreation, function (err, response) {
+        if (err) {
+            console.log(err);
+        }
+
+        jsonData = response.json();
+        postman.setEnvironmentVariable("quotationDocument.url", jsonData.data.document.url);
+        
+        //REALIZAMOS LA ACTIVACIÓN DEL PROYECTO
+        var projectActivation = {
+            url: host + '/' + version + '/quotations/' + quotationId + '/project/' + sceneId,
+            method: 'PATCH',
+            header: {
+                'Authorization': access_token,
+                'Content-Type': 'application/json',
+                "X-IBM-Client-Id": xIBMClientId,
+                "User-Agent": "PostmanRuntime/7.26.10",
+                "Accept": "*/*",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive"
+            }
+        };
+        pm.sendRequest(projectActivation, function (err, response) {
+            if (err) {
+                console.log(err);
+            }
+
+            //REALIZAMOS LA SOLICITUD DE PÓLIZA
+            var policyRequestRequest = {
+                url: host + '/' + version + '/quotations/' + quotationId + '/requisition/' + sceneId,
+                method: 'POST',
+                header: {
+                    'Authorization': access_token,
+                    'Content-Type': 'application/json',
+                    "X-IBM-Client-Id": xIBMClientId,
+                    "User-Agent": "PostmanRuntime/7.26.10",
+                    "Accept": "*/*",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    "Connection": "keep-alive"
+                },
+                body: {
+                    mode: 'raw',
+                    raw: JSON.stringify({
+                        "distributionIdentification": {
+                            "channel": "OFI",
+                            "officeCode": "6333",
+                            "employeeCode": "9999",
+                            "officeCommissionCode": "8908",
+                            "moment": "PERIODO_PAGO"
+                        },
+                        "effectDate": effectDate,
+                        "distributionNumber": "1554425",
+                        "product": {
+                            "productFamily": "AG",
+                            "productCode": "315",
+                            "subProductCode": "043"
+                        },
+                        "holder": {
+                            "personalData": {
+                                "clientCode": pm.environment.get("clientCode"),
+                                "personType": pm.environment.get("personType"),
+                                "name": pm.environment.get("name"),
+                                "surname1": pm.environment.get("surname1"),
+                                "surname2": pm.environment.get("surname2"),
+                                "birthDate": pm.environment.get("birthDate"),
+                                "jobCode": pm.environment.get("jobCode"),
+                                "genderCode": pm.environment.get("genderCode"),
+                                "maritalStatus": pm.environment.get("maritalStatus"),
+                                "nationality": pm.environment.get("nationality"),
+                                "taxResidency": "34",
+                                "identificationDocument": {
+                                    "type": "N",
+                                    "number": pm.environment.get("dni"),
+                                    "expirationDate": pm.environment.get("expirationDate")
+                                },
+                                "contact": {
+                                    "favoriteTypeContact": pm.environment.get("favoriteTypeContact"),
+                                    "email": pm.environment.get("email"),
+                                    "telephone1": pm.environment.get("telephone1"),
+                                    "telephone2": pm.environment.get("telephone2"),
+                                    "address": {
+                                        "roadType": pm.environment.get("roadType"),
+                                        "roadName": pm.environment.get("roadName"),
+                                        "number": pm.environment.get("number"),
+                                        "portal": pm.environment.get("portal"),
+                                        "stair": pm.environment.get("stair"),
+                                        "floor": pm.environment.get("floor"),
+                                        "door": pm.environment.get("door"),
+                                        "town": pm.environment.get("town"),
+                                        "province": pm.environment.get("province"),
+                                        "postalCode": pm.environment.get("postalCode"),
+                                        "otherData": pm.environment.get("otherData"),
+                                        "country": pm.environment.get("country")
+                                    }
+                                }
+                            },
+                            "consents": {
+                                "dataTransfer": true,
+                                "advertisingDelivery": true
+                            },
+                            "features": {
+                                "structuralSegment": "A1",
+                                "businessSegment": "PP",
+                                "employee": false,
+                                "shareholder": false,
+                                "collectives": [
+                                    "1"
+                                ]
+                            }
+                        },
+                        "insureds": [
+                            {
+                                "insuredNumber": 1,
+                                "isHolder": true,
+                                "personalData": {
+                                    "clientCode": pm.environment.get("clientCode"),
+                                    "personType": pm.environment.get("personType"),
+                                    "name": pm.environment.get("name"),
+                                    "surname1": pm.environment.get("surname1"),
+                                    "surname2": pm.environment.get("surname2"),
+                                    "birthDate": pm.environment.get("birthDate"),
+                                    "jobCode": pm.environment.get("jobCode"),
+                                    "genderCode": pm.environment.get("genderCode"),
+                                    "maritalStatus": pm.environment.get("maritalStatus"),
+                                    "nationality": pm.environment.get("nationality"),
+                                    "taxResidency": "34",
+                                    "identificationDocument": {
+                                        "type": "N",
+                                        "number": pm.environment.get("dni"),
+                                        "expirationDate": pm.environment.get("expirationDate")
+                                    },
+                                    "contact": {
+                                        "favoriteTypeContact": pm.environment.get("favoriteTypeContact"),
+                                        "email": pm.environment.get("email"),
+                                        "telephone1": pm.environment.get("telephone1"),
+                                        "telephone2": pm.environment.get("telephone2"),
+                                        "address": {
+                                            "roadType": pm.environment.get("roadType"),
+                                            "roadName": pm.environment.get("roadName"),
+                                            "number": pm.environment.get("number"),
+                                            "portal": pm.environment.get("portal"),
+                                            "stair": pm.environment.get("stair"),
+                                            "floor": pm.environment.get("floor"),
+                                            "door": pm.environment.get("door"),
+                                            "town": pm.environment.get("town"),
+                                            "province": pm.environment.get("province"),
+                                            "postalCode": pm.environment.get("postalCode"),
+                                            "otherData": pm.environment.get("otherData"),
+                                            "country": pm.environment.get("country")
+                                        }
+                                    }
+                                },
+                                "questionary": [
+                                    {
+                                        "id": "SGACC001",
+                                        "questions": [
+                                            {
+                                                "id": "INCAPACIDAD",
+                                                "answer": false
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "coverages": [
+                                    {
+                                        "id": "FAI",
+                                        "capital": 50000,
+                                        "premium": 75,
+                                        "description": "Fallecimiento por accidente",
+                                        "mandatory": true,
+                                        "concepts": {
+                                            "netPremium": 70,
+                                            "ccs": 1,
+                                            "ips": 2,
+                                            "dgs": 2
+                                        },
+                                        "childCoverages": [
+                                            null
+                                        ]
+                                    }
+                                ],
+                                "beneficiaries": [
+                                    {
+                                        "order": 1,
+                                        "beneficiaryType": "01",
+                                        "declarationCode": "BN",
+                                        "beneficiaryText": "otro tipo de información",
+                                        "participationPercentage": 100,
+                                        "identificationDocument": {
+                                            "type": "N",
+                                            "number": "41625794A",
+                                            "expirationDate": "2034-11-09"
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        "pricing": {
+                            "premiumWithoutDiscount": 200,
+                            "premium": 200,
+                            "discounts": [
+                                {
+                                    "type": "D",
+                                    "code": "0D01",
+                                    "percentage": 28.54,
+                                    "amount": 10,
+                                    "description": "Descuento empleados"
+                                }
+                            ]
+                        },
+                        "payment": {
+                            "frecuency": {
+                                "frequencyCode": "03",
+                                "amount": 112.82,
+                                "totalAmount": 122.25,
+                                "firstReceipt": 61.32,
+                                "nextReceipt": 60.93,
+                                "dailyPremium": 2.99
+                            },
+                            "method": {
+                                "methodCode": "BANC",
+                                "creditCard": "string",
+                                "bankAccount": {
+                                    "iban": "ES59",
+                                    "bankCode": "0081",
+                                    "branchCode": "3895",
+                                    "controlDigit": "82",
+                                    "accountNumber": "2573492386"
+                                }
+                            }
+                        }
+                    })
+                }
+            };
+            pm.sendRequest(policyRequestRequest, function (err, response) {
+                if (err) {
+                    console.log(err);
+                }
+
+                //REALIZAMOS LA CREACIÓN DE UNA PÓLIZA A PARTIR DE UNA SOLICITUD DE POLIZA
+                
+                var policyCreation = {
+                    url: host + '/' + version + '/policy-plan-a',
+                    method: 'POST',
+                    header: {
+                        'Authorization': access_token,
+                        'Content-Type': 'application/json',
+                        "X-IBM-Client-Id": xIBMClientId,
+                        "User-Agent": "PostmanRuntime/7.26.10",
+                        "Accept": "*/*",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Connection": "keep-alive"
+                    },
+                    body: {
+                        mode: 'raw',
+                        raw: JSON.stringify({
+                            "distributionIdentification": {
+                                "channel": "OFI",
+                                "officeCode": "6333",
+                                "employeeCode": "9999",
+                                "officeCommissionCode": "8908"
+                            },
+                            "scene": {
+                                "sceneId": sceneId,
+                                "productFamily": productFamily,
+                                "productCode": productCode,
+                                "subProductCode": subProductCode,
+                                "caseId": "25487"
+                            },
+                            "quotationId": quotationId
+
+                        })
+                    }
+
+                }
+
+                pm.sendRequest(policyCreation,function(err, responsePolicyCreation){
+                    if (err) {
+                    console.log(err);
+                    }
+                
+                    jsonData = responsePolicyCreation.json();
+                    postman.setEnvironmentVariable("policy-number", jsonData.data.policy.policyNumber);
+                
+                    //GENERACIÓN DEL DOCUMENTO ASOCIADO A UN TIPO DOCUMENTAL
+
+                    var generatePolicyDocument = {
+                        url: host + '/' + version + '/policy/'+pm.environment.get("id_quotation")+'/documentation/'+pm.environment.get("documentary-type"),
+
+                        method: 'POST',
+                        header: {
+                            'Authorization': access_token,
+                            'Content-Type': 'application/json',
+                            "X-IBM-Client-Id": xIBMClientId,
+                            "User-Agent": "PostmanRuntime/7.26.10",
+                            "Accept": "*/*",
+                            "Accept-Encoding": "gzip, deflate, br",
+                            "Connection": "keep-alive"
+                        },
+                        body: {
+                            mode: 'raw',
+                            raw: JSON.stringify({
+                                "attorneyInFactNumber":2
+                            })
+                        }
+                    };
+
+                    pm.sendRequest(generatePolicyDocument,function(err, responseGeneratePolicyDocument){
+                        if(err){
+                            console.log(err);
+                        }
+                        
+                        jsonData = responseGeneratePolicyDocument.json();
+                        postman.setEnvironmentVariable("document-id", jsonData.data.document.documentId);
+                        postman.setEnvironmentVariable("policyDocument.url", jsonData.data.document.url);
+
+
+
+                        //ACTIVACIÓN DE LA PÓLIZA
+
+                    var activatePolize = {
+                        url: host + '/' + version + '/policy/' + pm.environment.get("policy-number"),
+
+                        method: 'PATCH',
+                        header: {
+                            'Authorization': access_token,
+                            'Content-Type': 'application/json',
+                            "X-IBM-Client-Id": xIBMClientId,
+                            "User-Agent": "PostmanRuntime/7.26.10",
+                            "Accept": "*/*",
+                            "Accept-Encoding": "gzip, deflate, br",
+                            "Connection": "keep-alive"
+                        },
+                        body: {
+                            mode: 'raw',
+                            raw: JSON.stringify({
+                                "policyDistributionNumber": "123456789",
+                                "documents": [
+                                    {
+                                        "documentId": pm.environment.get("document-id"),
+                                        "documentaryType": pm.environment.get("documentary-type")
+                                    }
+                                ]
+                            })
+                        }
+
+                    };
+
+                    pm.sendRequest(activatePolize,function(err, responseActivatePolize){
+                        if(err){
+                            console.log(err);
+                        }
+
+                        //Generar Datos de suplemento.
+                        var generateDatesSupplement = {
+                            url: host + '/' + version2 + '/policy/' + pm.environment.get("policy-number") + pm.environment.get("supplement.supplementId"),
+
+                            method: 'POST',
+                            header: {
+                                'Authorization': access_token,
+                                'Content-Type': 'application/json',
+                                "X-IBM-Client-Id": xIBMClientId,
+                                "User-Agent": "PostmanRuntime/7.26.10",
+                                "Accept": "*/*",
+                                "Accept-Encoding": "gzip, deflate, br",
+                                "Connection": "keep-alive"
+                            },
+                            body: {
+                                mode: 'raw',
+                                raw: JSON.stringify({
+                                    "information": {
+                                        "typeSupp": "N",
+                                        "codeSupp": "37",
+                                        "registerDate": pm.environment.get("quotation.effectDate"),
+                                        "registerUser": "ELESME",
+                                        "accessLevel": "AS1",
+                                        "online": true,
+                                        "referenceDistribution": "123456",
+                                        "clientType": pm.environment.get("quotation.insureds.personalData.personType"),
+                                        "clientCode": pm.environment.get("quotation.insureds.personalData.clientCode"),
+                                        "typeOperation": "47",
+                                        "formOperation": "Unipersonal"
+                                    },
+                                    "generalData": {
+                                        "currency": "EUR",
+                                        "effectDate": pm.environment.get("supplement.effectDates.effectDate"),
+                                        "capital": 1.2,
+                                        "revaluation": ""
+                                    },
+                                    "contact": {
+                                        "telephone1": pm.environment.get("quotation.insureds.personalData.contact.telephone1"),
+                                        "email": pm.environment.get("quotation.insureds.personalData.contact.email"),
+                                        "timeBand": "",
+                                        "address": {
+                                            "id": "",
+                                            "roadType": pm.environment.get("quotation.insureds.personalData.contact.adress.roadType"),
+                                            "roadName": pm.environment.get("quotation.insureds.personalData.contact.adress.roadName"),
+                                            "number": pm.environment.get("quotation.insureds.personalData.contact.adress.number"),
+                                            "town": pm.environment.get("quotation.insureds.personalData.contact.adress.town"),
+                                            "province": pm.environment.get("quotation.insureds.personalData.contact.adress.province"),
+                                            "postalCode": pm.environment.get("quotation.insureds.personalData.contact.adress.postalCode"),
+                                            "otherData": pm.environment.get("quotation.insureds.personalData.contact.adress.otherData"),
+                                            "country": pm.environment.get("quotation.insureds.personalData.contact.adress.country")
+                                        }
+                                    },
+                                    "payment": {
+                                        "frecuency": {
+                                            "frequencyCode": pm.environment.get("quotation.payment.frecuencies.frequencyCode")
+                                        },
+                                        "method": {
+                                            "methodCode": pm.environment.get("payment.method.methodCode"),
+                                            "iban": "ES21",
+                                            "bankCode": pm.environment.get("payment.method.bankAccount.bankCode"),
+                                            "branchCode": pm.environment.get("payment.method.bankAccount.branchCode"),
+                                            "controlDigit": pm.environment.get("payment.method.bankAccount.controlDigit"),
+                                            "accountNumber": pm.environment.get("payment.method.bankAccount.accountNumber"),
+                                            "creditCard": {
+                                                "creditCard": "555544455554444"
+                                            }
+                                        }
+                                    },
+                                    "job": {
+                                        "newJob": ""
+                                    },
+                                    "coverages": [
+                                        {
+                                            "id": "1",
+                                            "capital": 1.22
+                                        }
+                                    ],
+                                    "beneficiaries": [
+                                        {
+                                            "order": pm.environment.get("quotation.beneficiaries.order"),
+                                            "beneficiaryType": pm.environment.get("quotation.beneficiaries.beneficiaryType"),
+                                            "beneficiaryText": pm.environment.get("quotation.beneficiaries.beneficiaryText"),
+                                            "birthDate": "1980-04-17",
+                                            "genderCode": "H"
+                                        }
+                                    ]
+})
+                            }
+                        };
+
+                        pm.sendRequest(generateDatesSupplement, function(err, responseGenerateDatessSupplement){
+                            if(err){
+                                console.log(err);
+                            }
+
+
+
+
+
+                        })
+                        
+                        
+
+                    });
+
+                    });
+
+                    
+
+                }
+
+                );
+
+            });
+
+        });
+    });
+});
